@@ -1,0 +1,70 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f4f5f7;
+  color: #222;
+}
+
+header { background: #2d3748; color: #fff; padding: 12px 20px; }
+header h1 { font-size: 18px; font-weight: 600; }
+
+main { flex: 1; display: flex; min-height: 0; }
+
+/* panels */
+.panel { flex: 1; padding: 20px; overflow-y: auto; }
+.panel.left {
+  border-right: 2px solid #d0d4da;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 380px;
+}
+.panel.right { display: flex; flex-direction: column; min-height: 0; gap: 12px; }
+
+h2 { font-size: 15px; color: #4a5568; margin-bottom: 8px; }
+
+/* controls */
+.control { display: flex; flex-direction: column; gap: 6px; }
+.control label, .examples label { font-size: 13px; font-weight: 600; color: #4a5568; }
+input[type=file], select {
+  padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; background: #fff;
+}
+.run-btn {
+  padding: 12px; background: #3182ce; color: #fff; border: none;
+  border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.run-btn:hover { background: #2b6cb0; }
+.run-btn:disabled { background: #a0aec0; cursor: default; }
+
+/* examples */
+.examples { display: flex; flex-direction: column; gap: 8px; }
+.examples-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.example-thumb {
+  width: 100%; height: 46px; object-fit: cover;
+  border: 2px solid transparent; border-radius: 4px; cursor: pointer; background: #edf2f7;
+}
+.example-thumb:hover { border-color: #90cdf4; }
+.example-thumb.selected { border-color: #3182ce; }
+
+/* right panel halves */
+.image-pane {
+  flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;
+}
+.image-wrap { max-width: 100%; max-height: 100%; display: flex; align-items: center; justify-content: center; }
+.image-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.placeholder { color: #a0aec0; }
+
+.text-pane {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;
+}
+.result-text {
+  flex: 1; font-size: 26px; line-height: 1.6; color: #1a202c;
+  white-space: pre-wrap; word-break: break-word; overflow-y: auto;
+}

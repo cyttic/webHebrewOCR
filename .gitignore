@@ -1,0 +1,13 @@
+# model weights and example images (large / local-only)
+models/
+images/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# os
+.DS_Store

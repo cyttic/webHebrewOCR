@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hebrew Handwriting OCR</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header><h1>Hebrew Handwriting OCR</h1></header>
+
+  <main>
+    <!-- LEFT: controls -->
+    <section class="panel left">
+      <div class="control">
+        <label for="fileInput">Choose image</label>
+        <input type="file" id="fileInput" accept="image/*" />
+      </div>
+
+      <div class="control">
+        <label for="modelSelect">Model</label>
+        <select id="modelSelect"></select>
+      </div>
+
+      <div class="control">
+        <label for="beamSelect">Decoding</label>
+        <select id="beamSelect">
+          <option value="1">Greedy (fast)</option>
+          <option value="4" selected>Beam search (better)</option>
+        </select>
+      </div>
+
+      <button id="runBtn" class="run-btn">Run OCR</button>
+
+      <div class="examples">
+        <label>Examples (click to select)</label>
+        <div id="examplesGrid" class="examples-grid"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: image (top) + result (bottom) -->
+    <section class="panel right">
+      <div class="image-pane">
+        <div id="imageWrap" class="image-wrap">
+          <span class="placeholder">No image selected</span>
+        </div>
+      </div>
+      <div class="text-pane">
+        <h2>Result</h2>
+        <div id="resultText" class="result-text" dir="rtl">—</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
