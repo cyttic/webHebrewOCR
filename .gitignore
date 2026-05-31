@@ -1,6 +1,7 @@
 # model weights and example images (large / local-only)
 models/
 images/
+sample_images/
 
 # python
 __pycache__/
