@@ -36,18 +36,23 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-azure:
-    name: Deploy to Azure Web App
+  deploy-azure-vm:
+    name: Deploy to Azure VM
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Azure login
-        uses: azure/login@v2
+      - name: Pull image & restart container over SSH
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy container to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-          images: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/web-hebrew-ocr:${{ github.sha }}
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            set -e
+            IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/web-hebrew-ocr:${{ github.sha }}"
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            docker pull "$IMAGE"
+            docker stop web-hebrew-ocr || true
+            docker rm   web-hebrew-ocr || true
+            docker run -d --name web-hebrew-ocr --restart unless-stopped -p 80:8000 "$IMAGE"
+            docker image prune -f
