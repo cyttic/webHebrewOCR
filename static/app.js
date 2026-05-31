@@ -7,6 +7,7 @@ const beamSelect    = document.getElementById('beamSelect');
 const runBtn        = document.getElementById('runBtn');
 const examplesGrid  = document.getElementById('examplesGrid');
 const imageWrap     = document.getElementById('imageWrap');
+const imagePane     = document.querySelector('.image-pane');
 const resultText    = document.getElementById('resultText');
 
 async function init() {
@@ -44,13 +45,33 @@ function clearExampleHighlight() {
           .forEach(t => t.classList.remove('selected'));
 }
 
-fileInput.addEventListener('change', () => {
-  if (!fileInput.files.length) return;
-  selectedFile = fileInput.files[0];
+function setFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('Please choose an image file.'); return; }
+  selectedFile = file;
   selectedExample = null;
+  fileInput.value = '';
   clearExampleHighlight();
-  showImage(URL.createObjectURL(selectedFile));
+  showImage(URL.createObjectURL(file));
   resultText.textContent = '—';
+}
+
+fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+
+// drag-and-drop onto the right-side image pane
+['dragenter', 'dragover'].forEach(ev =>
+  imagePane.addEventListener(ev, e => {
+    e.preventDefault();
+    imagePane.classList.add('dragover');
+  }));
+['dragleave', 'dragend', 'drop'].forEach(ev =>
+  imagePane.addEventListener(ev, e => {
+    e.preventDefault();
+    imagePane.classList.remove('dragover');
+  }));
+imagePane.addEventListener('drop', e => {
+  const files = e.dataTransfer && e.dataTransfer.files;
+  if (files && files.length) setFile(files[0]);
 });
 
 function selectExample(fn, thumb) {
