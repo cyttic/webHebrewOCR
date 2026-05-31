@@ -1,0 +1,19 @@
+# model is downloaded from HF inside the image, not copied from context
+models/
+# examples are seeded from sample_images/ inside the image
+images/
+
+# vcs / python / local
+.git
+.gitignore
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# archives & misc
+*.zip
+*.tar.gz
+.DS_Store
+.github/
