@@ -41,8 +41,19 @@
     <!-- RIGHT: image (top) + result (bottom) -->
     <section class="panel right">
       <div class="image-pane">
-        <div id="imageWrap" class="image-wrap">
-          <span class="placeholder">No image selected — drop an image here, or use “Choose image”</span>
+        <div class="draw-col">
+          <h2>Draw text</h2>
+          <canvas id="drawCanvas" class="draw-canvas"></canvas>
+          <div class="draw-actions">
+            <button id="clearBtn" class="secondary-btn">Clear</button>
+            <button id="analyzeBtn" class="secondary-btn primary">To analyze →</button>
+          </div>
+        </div>
+        <div class="preview-col">
+          <h2>Preview image to OCR</h2>
+          <div id="imageWrap" class="image-wrap">
+            <span class="placeholder">No image selected — drop an image here, choose a file, or draw on the left</span>
+          </div>
         </div>
       </div>
       <div class="text-pane">

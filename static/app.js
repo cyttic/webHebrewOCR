@@ -7,8 +7,11 @@ const beamSelect    = document.getElementById('beamSelect');
 const runBtn        = document.getElementById('runBtn');
 const examplesGrid  = document.getElementById('examplesGrid');
 const imageWrap     = document.getElementById('imageWrap');
-const imagePane     = document.querySelector('.image-pane');
+const previewCol    = document.querySelector('.preview-col');
 const resultText    = document.getElementById('resultText');
+const drawCanvas    = document.getElementById('drawCanvas');
+const clearBtn      = document.getElementById('clearBtn');
+const analyzeBtn    = document.getElementById('analyzeBtn');
 
 async function init() {
   // models
@@ -58,18 +61,18 @@ function setFile(file) {
 
 fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
 
-// drag-and-drop onto the right-side image pane
+// drag-and-drop onto the preview column
 ['dragenter', 'dragover'].forEach(ev =>
-  imagePane.addEventListener(ev, e => {
+  previewCol.addEventListener(ev, e => {
     e.preventDefault();
-    imagePane.classList.add('dragover');
+    previewCol.classList.add('dragover');
   }));
 ['dragleave', 'dragend', 'drop'].forEach(ev =>
-  imagePane.addEventListener(ev, e => {
+  previewCol.addEventListener(ev, e => {
     e.preventDefault();
-    imagePane.classList.remove('dragover');
+    previewCol.classList.remove('dragover');
   }));
-imagePane.addEventListener('drop', e => {
+previewCol.addEventListener('drop', e => {
   const files = e.dataTransfer && e.dataTransfer.files;
   if (files && files.length) setFile(files[0]);
 });
@@ -113,4 +116,51 @@ runBtn.addEventListener('click', async () => {
   }
 });
 
+// ── simple drawing canvas ─────────────────────────────────────────────
+const ctx = drawCanvas.getContext('2d');
+let drawing = false;
+
+function initCanvas() {
+  // internal resolution matches displayed size; white background (RGB-safe for the model)
+  drawCanvas.width  = drawCanvas.clientWidth;
+  drawCanvas.height = drawCanvas.clientHeight;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+}
+
+function canvasPos(pt) {
+  const r = drawCanvas.getBoundingClientRect();
+  return {
+    x: (pt.clientX - r.left) * (drawCanvas.width  / r.width),
+    y: (pt.clientY - r.top)  * (drawCanvas.height / r.height),
+  };
+}
+
+function startDraw(pt) { drawing = true; const p = canvasPos(pt); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+function moveDraw(pt)  { if (!drawing) return; const p = canvasPos(pt); ctx.lineTo(p.x, p.y); ctx.stroke(); }
+function endDraw()     { drawing = false; }
+
+drawCanvas.addEventListener('mousedown', e => startDraw(e));
+drawCanvas.addEventListener('mousemove', e => moveDraw(e));
+window.addEventListener('mouseup', endDraw);
+drawCanvas.addEventListener('touchstart', e => { e.preventDefault(); startDraw(e.touches[0]); });
+drawCanvas.addEventListener('touchmove',  e => { e.preventDefault(); moveDraw(e.touches[0]); });
+window.addEventListener('touchend', endDraw);
+
+clearBtn.addEventListener('click', initCanvas);
+
+// move the drawing into the preview, ready for "Run OCR"
+analyzeBtn.addEventListener('click', () => {
+  drawCanvas.toBlob(blob => {
+    if (!blob) return;
+    const file = new File([blob], 'drawing.png', { type: 'image/png' });
+    setFile(file);   // same path as upload/drop -> shows in preview, ready to Run
+  }, 'image/png');
+});
+
+initCanvas();
 init();
