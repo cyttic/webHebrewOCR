@@ -1,0 +1,15 @@
+[Unit]
+Description=Hebrew OCR model server (FastAPI) on the notebook
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=cyttic
+WorkingDirectory=/mnt/ssd2/cyttic/projects/webHebrewOCR
+# uses the venv that already has torch + transformers + fastapi + uvicorn
+ExecStart=/mnt/ssd2/cyttic/projects/TrOCR_Hebrew/.venv/bin/python -m uvicorn model_server:app --host 127.0.0.1 --port 8001
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

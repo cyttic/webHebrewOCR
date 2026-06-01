@@ -1,0 +1,7 @@
+# Model server (runs on the notebook) — heavy deps
+fastapi
+uvicorn[standard]
+python-multipart
+pillow
+torch
+transformers

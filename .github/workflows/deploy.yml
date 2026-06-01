@@ -54,5 +54,9 @@ jobs:
             docker pull "$IMAGE"
             docker stop web-hebrew-ocr || true
             docker rm   web-hebrew-ocr || true
-            docker run -d --name web-hebrew-ocr --restart unless-stopped -p 80:8000 "$IMAGE"
+            # host network so the container can reach the reverse tunnel on 127.0.0.1:8001
+            docker run -d --name web-hebrew-ocr --restart unless-stopped \
+              --network host \
+              -e MODEL_SERVER_URL=http://127.0.0.1:8001 \
+              "$IMAGE" uvicorn main:app --host 0.0.0.0 --port 80
             docker image prune -f

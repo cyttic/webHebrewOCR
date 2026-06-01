@@ -1,0 +1,16 @@
+[Unit]
+Description=Reverse SSH tunnel to Azure VM (exposes the OCR model server)
+After=network-online.target model-server.service
+Wants=network-online.target
+
+[Service]
+User=cyttic
+Environment=AUTOSSH_GATETIME=0
+# Forwards  VM:127.0.0.1:8001  ->  notebook:127.0.0.1:8001
+# EDIT: set your VM public IP and the SSH key path below.
+ExecStart=/usr/bin/autossh -M 0 -N -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=accept-new -i /home/cyttic/.ssh/azure_deploy_key -R 8001:127.0.0.1:8001 azureuser@VM_PUBLIC_IP
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
