@@ -10,6 +10,7 @@ const imageWrap     = document.getElementById('imageWrap');
 const previewCol    = document.querySelector('.preview-col');
 const resultText    = document.getElementById('resultText');
 const drawCanvas    = document.getElementById('drawCanvas');
+const canvasHint    = document.getElementById('canvasHint');
 const clearBtn      = document.getElementById('clearBtn');
 const analyzeBtn    = document.getElementById('analyzeBtn');
 
@@ -130,6 +131,7 @@ function initCanvas() {
   ctx.lineWidth = 5;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
+  if (canvasHint) canvasHint.style.display = '';   // show placeholder on a blank canvas
 }
 
 function canvasPos(pt) {
@@ -140,7 +142,13 @@ function canvasPos(pt) {
   };
 }
 
-function startDraw(pt) { drawing = true; const p = canvasPos(pt); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+function startDraw(pt) {
+  drawing = true;
+  if (canvasHint) canvasHint.style.display = 'none';   // hide placeholder once drawing
+  const p = canvasPos(pt);
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+}
 function moveDraw(pt)  { if (!drawing) return; const p = canvasPos(pt); ctx.lineTo(p.x, p.y); ctx.stroke(); }
 function endDraw()     { drawing = false; }
 

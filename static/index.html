@@ -43,7 +43,10 @@
       <div class="image-pane">
         <div class="draw-col">
           <h2>Draw text</h2>
-          <canvas id="drawCanvas" class="draw-canvas"></canvas>
+          <div class="canvas-wrap">
+            <canvas id="drawCanvas" class="draw-canvas"></canvas>
+            <span id="canvasHint" class="canvas-hint">draw text here</span>
+          </div>
           <div class="draw-actions">
             <button id="clearBtn" class="secondary-btn">Clear</button>
             <button id="analyzeBtn" class="secondary-btn primary">Fix →</button>

@@ -60,10 +60,16 @@ input[type=file], select {
 }
 .preview-col.dragover { border: 2px dashed #3182ce; background: #ebf8ff; }
 
+.canvas-wrap { position: relative; flex: 1; min-height: 0; }
 .draw-canvas {
-  flex: 1; min-height: 0; width: 100%;
+  width: 100%; height: 100%; display: block;
   border: 1px solid #cbd5e0; border-radius: 6px; background: #fff;
   cursor: crosshair; touch-action: none;
+}
+.canvas-hint {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  color: rgba(45, 55, 72, 0.22); font-size: 30px; font-weight: 700;
+  pointer-events: none; user-select: none; white-space: nowrap;
 }
 .draw-actions { display: flex; gap: 8px; margin-top: 10px; }
 .secondary-btn {
