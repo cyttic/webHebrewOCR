@@ -1,9 +1,9 @@
 name: build-and-deploy
 
-# Build the Docker image (model baked in) -> push to Docker Hub -> deploy to Azure.
+# Build the thin frontend image -> push to Docker Hub -> deploy to the Azure VM.
 on:
   push:
-    branches: [ main ]
+    branches: [ main, remote-backend ]
   workflow_dispatch:
 
 jobs:
@@ -31,8 +31,6 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/web-hebrew-ocr:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/web-hebrew-ocr:${{ github.sha }}
-          build-args: |
-            HF_TOKEN=${{ secrets.HF_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
