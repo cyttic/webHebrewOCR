@@ -11,7 +11,7 @@ from block_processor import HebrewBlockProcessor
 MODELS_DIR = "models"
 
 _processor = HebrewBlockProcessor()
-_cache = {}          # model_name -> (model, tokenizer)
+_cache = {}          # model_name -> (model, tokenizer )
 _device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
