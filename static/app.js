@@ -1,18 +1,19 @@
-let selectedFile = null;
-let selectedExample = null;
-
 const fileInput     = document.getElementById('fileInput');
 const modelSelect   = document.getElementById('modelSelect');
 const beamSelect    = document.getElementById('beamSelect');
 const runBtn        = document.getElementById('runBtn');
 const examplesGrid  = document.getElementById('examplesGrid');
-const imageWrap     = document.getElementById('imageWrap');
 const previewCol    = document.querySelector('.preview-col');
 const resultText    = document.getElementById('resultText');
 const drawCanvas    = document.getElementById('drawCanvas');
 const canvasHint    = document.getElementById('canvasHint');
 const clearBtn      = document.getElementById('clearBtn');
-const analyzeBtn    = document.getElementById('analyzeBtn');
+const penColor      = document.getElementById('penColor');
+const penSize       = document.getElementById('penSize');
+
+const ctx = drawCanvas.getContext('2d');
+let drawing = false;
+let hasContent = false;   // true once an image is loaded or a stroke is drawn
 
 async function init() {
   // models
@@ -37,11 +38,35 @@ async function init() {
   });
 }
 
-function showImage(src) {
-  imageWrap.innerHTML = '';
-  const img = document.createElement('img');
+// ── canvas: shared preview + drawing surface ──────────────────────────
+function paintWhite() {
+  drawCanvas.width  = drawCanvas.clientWidth;
+  drawCanvas.height = drawCanvas.clientHeight;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+}
+
+function clearCanvas() {
+  paintWhite();
+  hasContent = false;
+  if (canvasHint) canvasHint.style.display = '';   // show placeholder again
+  resultText.textContent = '—';
+}
+
+// draw a selected/dropped image as the canvas background (contain-fit, centered)
+function loadImageOntoCanvas(src) {
+  const img = new Image();
+  img.onload = () => {
+    paintWhite();
+    const cw = drawCanvas.width, ch = drawCanvas.height;
+    const scale = Math.min(cw / img.width, ch / img.height);
+    const dw = img.width * scale, dh = img.height * scale;
+    ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+    hasContent = true;
+    if (canvasHint) canvasHint.style.display = 'none';
+    resultText.textContent = '—';
+  };
   img.src = src;
-  imageWrap.appendChild(img);
 }
 
 function clearExampleHighlight() {
@@ -52,17 +77,21 @@ function clearExampleHighlight() {
 function setFile(file) {
   if (!file) return;
   if (!file.type.startsWith('image/')) { alert('Please choose an image file.'); return; }
-  selectedFile = file;
-  selectedExample = null;
   fileInput.value = '';
   clearExampleHighlight();
-  showImage(URL.createObjectURL(file));
-  resultText.textContent = '—';
+  loadImageOntoCanvas(URL.createObjectURL(file));
+}
+
+function selectExample(fn, thumb) {
+  fileInput.value = '';
+  clearExampleHighlight();
+  thumb.classList.add('selected');
+  loadImageOntoCanvas('/images/' + encodeURIComponent(fn));
 }
 
 fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
 
-// drag-and-drop onto the preview column
+// drag-and-drop onto the preview area
 ['dragenter', 'dragover'].forEach(ev =>
   previewCol.addEventListener(ev, e => {
     e.preventDefault();
@@ -78,62 +107,7 @@ previewCol.addEventListener('drop', e => {
   if (files && files.length) setFile(files[0]);
 });
 
-function selectExample(fn, thumb) {
-  selectedExample = fn;
-  selectedFile = null;
-  fileInput.value = '';
-  clearExampleHighlight();
-  thumb.classList.add('selected');
-  showImage('/images/' + encodeURIComponent(fn));
-  resultText.textContent = '—';
-}
-
-runBtn.addEventListener('click', async () => {
-  if (!selectedFile && !selectedExample) { alert('Choose an image or an example first.'); return; }
-  const model = modelSelect.value;
-  if (!model) { alert('No model available.'); return; }
-
-  const fd = new FormData();
-  fd.append('model', model);
-  fd.append('beams', beamSelect.value);
-  if (selectedFile) fd.append('file', selectedFile);
-  else fd.append('example', selectedExample);
-
-  runBtn.disabled = true;
-  resultText.textContent = 'Running…';
-  try {
-    const res = await fetch('/api/ocr', { method: 'POST', body: fd });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      resultText.textContent = 'Error: ' + (err.detail || res.status);
-    } else {
-      const data = await res.json();
-      resultText.textContent = data.text || '(empty)';
-    }
-  } catch (err) {
-    resultText.textContent = 'Error: ' + err.message;
-  } finally {
-    runBtn.disabled = false;
-  }
-});
-
-// ── simple drawing canvas ─────────────────────────────────────────────
-const ctx = drawCanvas.getContext('2d');
-let drawing = false;
-
-function initCanvas() {
-  // internal resolution matches displayed size; white background (RGB-safe for the model)
-  drawCanvas.width  = drawCanvas.clientWidth;
-  drawCanvas.height = drawCanvas.clientHeight;
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 5;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  if (canvasHint) canvasHint.style.display = '';   // show placeholder on a blank canvas
-}
-
+// ── drawing (only while the pen is pressed down) ──────────────────────
 function canvasPos(pt) {
   const r = drawCanvas.getBoundingClientRect();
   return {
@@ -144,13 +118,18 @@ function canvasPos(pt) {
 
 function startDraw(pt) {
   drawing = true;
-  if (canvasHint) canvasHint.style.display = 'none';   // hide placeholder once drawing
+  hasContent = true;
+  if (canvasHint) canvasHint.style.display = 'none';
+  ctx.strokeStyle = penColor.value;
+  ctx.lineWidth = parseInt(penSize.value, 10);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   const p = canvasPos(pt);
   ctx.beginPath();
   ctx.moveTo(p.x, p.y);
 }
-function moveDraw(pt)  { if (!drawing) return; const p = canvasPos(pt); ctx.lineTo(p.x, p.y); ctx.stroke(); }
-function endDraw()     { drawing = false; }
+function moveDraw(pt) { if (!drawing) return; const p = canvasPos(pt); ctx.lineTo(p.x, p.y); ctx.stroke(); }
+function endDraw()    { drawing = false; }
 
 drawCanvas.addEventListener('mousedown', e => startDraw(e));
 drawCanvas.addEventListener('mousemove', e => moveDraw(e));
@@ -159,16 +138,39 @@ drawCanvas.addEventListener('touchstart', e => { e.preventDefault(); startDraw(e
 drawCanvas.addEventListener('touchmove',  e => { e.preventDefault(); moveDraw(e.touches[0]); });
 window.addEventListener('touchend', endDraw);
 
-clearBtn.addEventListener('click', initCanvas);
+clearBtn.addEventListener('click', () => { clearExampleHighlight(); clearCanvas(); });
 
-// move the drawing into the preview, ready for "Run OCR"
-analyzeBtn.addEventListener('click', () => {
-  drawCanvas.toBlob(blob => {
+// ── run OCR on whatever is on the canvas (image + drawing) ────────────
+runBtn.addEventListener('click', () => {
+  if (!hasContent) { alert('Draw something or choose an image first.'); return; }
+  const model = modelSelect.value;
+  if (!model) { alert('No model available.'); return; }
+
+  drawCanvas.toBlob(async (blob) => {
     if (!blob) return;
-    const file = new File([blob], 'drawing.png', { type: 'image/png' });
-    setFile(file);   // same path as upload/drop -> shows in preview, ready to Run
+    const fd = new FormData();
+    fd.append('model', model);
+    fd.append('beams', beamSelect.value);
+    fd.append('file', new File([blob], 'canvas.png', { type: 'image/png' }));
+
+    runBtn.disabled = true;
+    resultText.textContent = 'Running…';
+    try {
+      const res = await fetch('/api/ocr', { method: 'POST', body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        resultText.textContent = 'Error: ' + (err.detail || res.status);
+      } else {
+        const data = await res.json();
+        resultText.textContent = data.text || '(empty)';
+      }
+    } catch (err) {
+      resultText.textContent = 'Error: ' + err.message;
+    } finally {
+      runBtn.disabled = false;
+    }
   }, 'image/png');
 });
 
-initCanvas();
+clearCanvas();
 init();
