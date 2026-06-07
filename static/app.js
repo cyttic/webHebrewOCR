@@ -16,15 +16,41 @@ let drawing = false;
 let hasContent = false;   // true once an image is loaded or a stroke is drawn
 let _sourceFile    = null;   // File object if user uploaded a file
 let _sourceExample = null;   // example filename if user picked an example
+let _drawBounds    = null;   // {minX, minY, maxX, maxY} of strokes drawn on the canvas
+
+function resetDrawBounds() { _drawBounds = null; }
+
+function expandDrawBounds(p) {
+  const half = parseInt(penSize.value, 10) / 2;
+  const x0 = p.x - half, y0 = p.y - half, x1 = p.x + half, y1 = p.y + half;
+  if (!_drawBounds) {
+    _drawBounds = { minX: x0, minY: y0, maxX: x1, maxY: y1 };
+  } else {
+    _drawBounds.minX = Math.min(_drawBounds.minX, x0);
+    _drawBounds.minY = Math.min(_drawBounds.minY, y0);
+    _drawBounds.maxX = Math.max(_drawBounds.maxX, x1);
+    _drawBounds.maxY = Math.max(_drawBounds.maxY, y1);
+  }
+}
 
 async function init() {
   // models
+  const MODEL_LABELS = {
+    'first_iteration':            'exp 1, human',
+    'trocr-hebrew-synthetic-cont': 'exp 2, synt',
+    'pre_finetune_unfrozen':      'exp 3, synt',
+  };
+  const MODEL_ORDER = ['first_iteration', 'trocr-hebrew-synthetic-cont', 'pre_finetune_unfrozen'];
+
   const m = await fetch('/api/models').then(r => r.json());
   modelSelect.innerHTML = '';
   if (!m.models.length) {
     modelSelect.appendChild(new Option('(no models found)', ''));
   } else {
-    m.models.forEach(name => modelSelect.appendChild(new Option(name, name)));
+    const known  = MODEL_ORDER.filter(name => m.models.includes(name));
+    const others = m.models.filter(name => !MODEL_ORDER.includes(name));
+    [...known, ...others].forEach(name =>
+      modelSelect.appendChild(new Option(MODEL_LABELS[name] || name, name)));
   }
 
   // examples
@@ -53,6 +79,7 @@ function clearCanvas() {
   hasContent = false;
   _sourceFile    = null;
   _sourceExample = null;
+  resetDrawBounds();
   if (canvasHint) canvasHint.style.display = '';   // show placeholder again
   resultText.textContent = '—';
 }
@@ -85,6 +112,7 @@ function setFile(file) {
   clearExampleHighlight();
   _sourceFile    = file;
   _sourceExample = null;
+  resetDrawBounds();
   loadImageOntoCanvas(URL.createObjectURL(file));
 }
 
@@ -94,6 +122,7 @@ function selectExample(fn, thumb) {
   thumb.classList.add('selected');
   _sourceFile    = null;
   _sourceExample = fn;
+  resetDrawBounds();
   loadImageOntoCanvas('/images/' + encodeURIComponent(fn));
 }
 
@@ -137,8 +166,15 @@ function startDraw(pt) {
   const p = canvasPos(pt);
   ctx.beginPath();
   ctx.moveTo(p.x, p.y);
+  expandDrawBounds(p);
 }
-function moveDraw(pt) { if (!drawing) return; const p = canvasPos(pt); ctx.lineTo(p.x, p.y); ctx.stroke(); }
+function moveDraw(pt) {
+  if (!drawing) return;
+  const p = canvasPos(pt);
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+  expandDrawBounds(p);
+}
 function endDraw()    { drawing = false; }
 
 drawCanvas.addEventListener('mousedown', e => startDraw(e));
@@ -188,7 +224,22 @@ runBtn.addEventListener('click', () => {
     fd.append('file', _sourceFile);
     sendOcr(fd);
   } else {
-    drawCanvas.toBlob((blob) => {
+    let sourceCanvas = drawCanvas;
+    if (_drawBounds) {
+      const pad = 6;
+      const x = Math.max(0, Math.floor(_drawBounds.minX - pad));
+      const y = Math.max(0, Math.floor(_drawBounds.minY - pad));
+      const w = Math.min(drawCanvas.width,  Math.ceil(_drawBounds.maxX + pad)) - x;
+      const h = Math.min(drawCanvas.height, Math.ceil(_drawBounds.maxY + pad)) - y;
+      if (w > 0 && h > 0) {
+        const cropped = document.createElement('canvas');
+        cropped.width = w;
+        cropped.height = h;
+        cropped.getContext('2d').drawImage(drawCanvas, x, y, w, h, 0, 0, w, h);
+        sourceCanvas = cropped;
+      }
+    }
+    sourceCanvas.toBlob((blob) => {
       if (!blob) return;
       const fd = new FormData();
       fd.append('model', model);
