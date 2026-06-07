@@ -14,6 +14,8 @@ const penSize       = document.getElementById('penSize');
 const ctx = drawCanvas.getContext('2d');
 let drawing = false;
 let hasContent = false;   // true once an image is loaded or a stroke is drawn
+let _sourceFile    = null;   // File object if user uploaded a file
+let _sourceExample = null;   // example filename if user picked an example
 
 async function init() {
   // models
@@ -49,6 +51,8 @@ function paintWhite() {
 function clearCanvas() {
   paintWhite();
   hasContent = false;
+  _sourceFile    = null;
+  _sourceExample = null;
   if (canvasHint) canvasHint.style.display = '';   // show placeholder again
   resultText.textContent = '—';
 }
@@ -79,6 +83,8 @@ function setFile(file) {
   if (!file.type.startsWith('image/')) { alert('Please choose an image file.'); return; }
   fileInput.value = '';
   clearExampleHighlight();
+  _sourceFile    = file;
+  _sourceExample = null;
   loadImageOntoCanvas(URL.createObjectURL(file));
 }
 
@@ -86,6 +92,8 @@ function selectExample(fn, thumb) {
   fileInput.value = '';
   clearExampleHighlight();
   thumb.classList.add('selected');
+  _sourceFile    = null;
+  _sourceExample = fn;
   loadImageOntoCanvas('/images/' + encodeURIComponent(fn));
 }
 
@@ -119,6 +127,8 @@ function canvasPos(pt) {
 function startDraw(pt) {
   drawing = true;
   hasContent = true;
+  _sourceFile    = null;
+  _sourceExample = null;
   if (canvasHint) canvasHint.style.display = 'none';
   ctx.strokeStyle = penColor.value;
   ctx.lineWidth = parseInt(penSize.value, 10);
@@ -146,13 +156,7 @@ runBtn.addEventListener('click', () => {
   const model = modelSelect.value;
   if (!model) { alert('No model available.'); return; }
 
-  drawCanvas.toBlob(async (blob) => {
-    if (!blob) return;
-    const fd = new FormData();
-    fd.append('model', model);
-    fd.append('beams', beamSelect.value);
-    fd.append('file', new File([blob], 'canvas.png', { type: 'image/png' }));
-
+  async function sendOcr(fd) {
     runBtn.disabled = true;
     resultText.textContent = 'Running…';
     try {
@@ -169,7 +173,30 @@ runBtn.addEventListener('click', () => {
     } finally {
       runBtn.disabled = false;
     }
-  }, 'image/png');
+  }
+
+  if (_sourceExample) {
+    const fd = new FormData();
+    fd.append('model', model);
+    fd.append('beams', beamSelect.value);
+    fd.append('example', _sourceExample);
+    sendOcr(fd);
+  } else if (_sourceFile) {
+    const fd = new FormData();
+    fd.append('model', model);
+    fd.append('beams', beamSelect.value);
+    fd.append('file', _sourceFile);
+    sendOcr(fd);
+  } else {
+    drawCanvas.toBlob((blob) => {
+      if (!blob) return;
+      const fd = new FormData();
+      fd.append('model', model);
+      fd.append('beams', beamSelect.value);
+      fd.append('file', new File([blob], 'canvas.png', { type: 'image/png' }));
+      sendOcr(fd);
+    }, 'image/png');
+  }
 });
 
 clearCanvas();
