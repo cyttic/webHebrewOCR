@@ -1,30 +1,31 @@
 # -*- coding: utf-8 -*-
 """
-FastAPI app to visualize the Hebrew handwriting OCR model.
+Thin web frontend (deployed to Azure). Serves the UI and forwards images to the
+model server running on the notebook, reached via the reverse SSH tunnel.
+
+No model / torch here — just static files + an HTTP forward, so the container
+stays tiny and needs almost no RAM.
+
+    MODEL_SERVER_URL  env var -> where the model server is (default the tunnel).
 
 Run:
-    pip install -r requirements.txt
-    uvicorn main:app --reload --host 0.0.0.0 --port 8000
-Then open http://localhost:8000
+    uvicorn main:app --host 0.0.0.0 --port 8000
 """
 
-import io
 import os
 
+import httpx
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from PIL import Image, UnidentifiedImageError
 
-import ocr
-
+MODEL_SERVER = os.environ.get("MODEL_SERVER_URL", "http://127.0.0.1:8001").rstrip("/")
 IMAGES_DIR = "images"
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp")
 
-os.makedirs("models", exist_ok=True)
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
-app = FastAPI(title="Hebrew Handwriting OCR")
+app = FastAPI(title="Hebrew Handwriting OCR (frontend)")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")
 
@@ -37,13 +38,18 @@ def index():
 
 @app.get("/api/models")
 def get_models():
-    return {"models": ocr.list_models()}
+    """Proxy the model list from the model server (empty if it's unreachable)."""
+    try:
+        r = httpx.get(f"{MODEL_SERVER}/models", timeout=10)
+        r.raise_for_status()
+        return r.json()
+    except Exception:
+        return {"models": []}
 
 
 @app.get("/api/examples")
 def get_examples():
-    files = [f for f in sorted(os.listdir(IMAGES_DIR))
-             if f.lower().endswith(IMAGE_EXTS)]
+    files = [f for f in sorted(os.listdir(IMAGES_DIR)) if f.lower().endswith(IMAGE_EXTS)]
     return {"examples": files}
 
 
@@ -54,22 +60,30 @@ async def api_ocr(
     file: UploadFile = File(None),
     example: str = Form(None),
 ):
-    if model not in ocr.list_models():
-        raise HTTPException(400, f"unknown model: {model}")
-
-    # image comes either from an upload or a chosen example
+    # grab the raw image bytes from an upload or a chosen example
     if file is not None:
-        try:
-            image = Image.open(io.BytesIO(await file.read()))
-        except UnidentifiedImageError:
-            raise HTTPException(400, "uploaded file is not a valid image")
+        data = await file.read()
+        fname = file.filename or "upload.png"
     elif example:
         path = os.path.join(IMAGES_DIR, os.path.basename(example))
         if not os.path.exists(path):
             raise HTTPException(404, f"example not found: {example}")
-        image = Image.open(path)
+        with open(path, "rb") as f:
+            data = f.read()
+        fname = os.path.basename(example)
     else:
         raise HTTPException(400, "no image provided")
 
-    text = ocr.run_ocr(image, model, beams)
-    return {"text": text}
+    # forward to the model server (notebook, via the tunnel)
+    try:
+        r = httpx.post(
+            f"{MODEL_SERVER}/ocr",
+            data={"model": model, "beams": str(beams)},
+            files={"file": (fname, data, "application/octet-stream")},
+            timeout=120,
+        )
+    except httpx.RequestError:
+        raise HTTPException(503, "model server unreachable — is the notebook + tunnel up?")
+    if r.status_code != 200:
+        raise HTTPException(r.status_code, r.text)
+    return r.json()

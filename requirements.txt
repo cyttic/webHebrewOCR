@@ -1,6 +1,5 @@
+# Frontend (Azure container) — thin, no model / torch
 fastapi
 uvicorn[standard]
 python-multipart
-torch
-transformers
-pillow
+httpx

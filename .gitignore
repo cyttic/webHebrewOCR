@@ -1,7 +1,8 @@
-# model weights and example images (large / local-only)
+# model weights and runtime example dir (large / local-only)
 models/
 images/
-sample_images/
+# NOTE: sample_images/ is committed on purpose — it seeds the demo examples
+#       baked into the Azure container, so it must NOT be ignored.
 
 # python
 __pycache__/

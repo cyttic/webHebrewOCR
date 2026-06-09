@@ -1,3 +1,24 @@
+<!--
+  Remote-backend services (run on the local machine that hosts the model server):
+
+  Start:
+    sudo systemctl enable --now tunnel model-server
+    # or, to run the model server manually:
+    #   cd /mnt/ssd2/cyttic/projects/webHebrewOCR && uvicorn model_server:app --host 127.0.0.1 --port 8001
+
+  Stop (e.g. when no longer needed):
+    sudo systemctl disable --now tunnel model-server
+
+  Remove the tunnel service entirely:
+    sudo systemctl disable --now tunnel
+    sudo rm /etc/systemd/system/tunnel.service
+    sudo systemctl daemon-reload
+
+  Check status / logs:
+    systemctl status tunnel model-server
+    journalctl -u tunnel -f
+    journalctl -u model-server -f
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,7 +47,8 @@
         <label for="beamSelect">Decoding</label>
         <select id="beamSelect">
           <option value="1">Greedy (fast)</option>
-          <option value="4" selected>Beam search (better)</option>
+          <option value="4" selected>Beam search ×4</option>
+          <option value="8">Beam search ×8 (best)</option>
         </select>
       </div>
 
@@ -38,21 +60,25 @@
       </div>
     </section>
 
-    <!-- RIGHT: image (top) + result (bottom) -->
+    <!-- RIGHT: preview/draw (top) + result (bottom) -->
     <section class="panel right">
       <div class="image-pane">
-        <div class="draw-col">
-          <h2>Draw text</h2>
-          <canvas id="drawCanvas" class="draw-canvas"></canvas>
-          <div class="draw-actions">
-            <button id="clearBtn" class="secondary-btn">Clear</button>
-            <button id="analyzeBtn" class="secondary-btn primary">To analyze →</button>
-          </div>
-        </div>
         <div class="preview-col">
-          <h2>Preview image to OCR</h2>
-          <div id="imageWrap" class="image-wrap">
-            <span class="placeholder">No image selected — drop an image here, choose a file, or draw on the left</span>
+          <div class="preview-head">
+            <h2>Preview image to OCR</h2>
+            <div class="draw-tools">
+              <label class="tool" title="Pen color">
+                <input type="color" id="penColor" value="#000000" />
+              </label>
+              <label class="tool" title="Pen size">
+                <input type="range" id="penSize" min="1" max="30" value="5" />
+              </label>
+              <button id="clearBtn" class="secondary-btn">Clear</button>
+            </div>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="drawCanvas" class="draw-canvas"></canvas>
+            <span id="canvasHint" class="canvas-hint">click to draw, or drop an image here</span>
           </div>
         </div>
       </div>
@@ -63,6 +89,6 @@
     </section>
   </main>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=2"></script>
 </body>
 </html>
