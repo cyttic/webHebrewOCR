@@ -36,11 +36,12 @@ function expandDrawBounds(p) {
 async function init() {
   // models
   const MODEL_LABELS = {
-    'first_iteration':            'exp 1, human',
-    'trocr-hebrew-synthetic-cont': 'exp 2, synt',
-    'pre_finetune_unfrozen':      'exp 3, synt',
+    'first_iteration':              'exp 1, human',
+    'trocr-hebrew-synthetic-cont':  'exp 2, synt',
+    'pre_finetune_unfrozen':        'exp 3, synt',
+    'trocr-hebrew-matan-exp7':      'exp 7, matan',
   };
-  const MODEL_ORDER = ['first_iteration', 'trocr-hebrew-synthetic-cont', 'pre_finetune_unfrozen'];
+  const MODEL_ORDER = ['first_iteration', 'trocr-hebrew-synthetic-cont', 'pre_finetune_unfrozen', 'trocr-hebrew-matan-exp7'];
 
   const m = await fetch('/api/models').then(r => r.json());
   modelSelect.innerHTML = '';

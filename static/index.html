@@ -1,3 +1,24 @@
+<!--
+  Remote-backend services (run on the local machine that hosts the model server):
+
+  Start:
+    sudo systemctl enable --now tunnel model-server
+    # or, to run the model server manually:
+    #   cd /mnt/ssd2/cyttic/projects/webHebrewOCR && uvicorn model_server:app --host 127.0.0.1 --port 8001
+
+  Stop (e.g. when no longer needed):
+    sudo systemctl disable --now tunnel model-server
+
+  Remove the tunnel service entirely:
+    sudo systemctl disable --now tunnel
+    sudo rm /etc/systemd/system/tunnel.service
+    sudo systemctl daemon-reload
+
+  Check status / logs:
+    systemctl status tunnel model-server
+    journalctl -u tunnel -f
+    journalctl -u model-server -f
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
