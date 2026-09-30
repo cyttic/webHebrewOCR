@@ -5,6 +5,7 @@ const runBtn        = document.getElementById('runBtn');
 const examplesGrid  = document.getElementById('examplesGrid');
 const previewCol    = document.querySelector('.preview-col');
 const resultText    = document.getElementById('resultText');
+const confidenceEl  = document.getElementById('confidence');
 const drawCanvas    = document.getElementById('drawCanvas');
 const canvasHint    = document.getElementById('canvasHint');
 const clearBtn      = document.getElementById('clearBtn');
@@ -19,6 +20,16 @@ let _sourceExample = null;   // example filename if user picked an example
 let _drawBounds    = null;   // {minX, minY, maxX, maxY} of strokes drawn on the canvas
 
 function resetDrawBounds() { _drawBounds = null; }
+
+// show "Confidence: 87%" (or clear it when conf is null/undefined)
+function setConfidence(conf) {
+  if (conf == null || isNaN(conf)) { confidenceEl.textContent = ''; return; }
+  const pct = Math.round(conf * 100);
+  confidenceEl.textContent = `Confidence: ${pct}%`;
+  // green ≥80, amber ≥50, red below
+  confidenceEl.className = 'confidence ' +
+    (pct >= 80 ? 'conf-high' : pct >= 50 ? 'conf-mid' : 'conf-low');
+}
 
 function expandDrawBounds(p) {
   const half = parseInt(penSize.value, 10) / 2;
@@ -83,6 +94,7 @@ function clearCanvas() {
   resetDrawBounds();
   if (canvasHint) canvasHint.style.display = '';   // show placeholder again
   resultText.textContent = '—';
+  setConfidence(null);
 }
 
 // draw a selected/dropped image as the canvas background (contain-fit, centered)
@@ -97,6 +109,7 @@ function loadImageOntoCanvas(src) {
     hasContent = true;
     if (canvasHint) canvasHint.style.display = 'none';
     resultText.textContent = '—';
+    setConfidence(null);
   };
   img.src = src;
 }
@@ -196,6 +209,7 @@ runBtn.addEventListener('click', () => {
   async function sendOcr(fd) {
     runBtn.disabled = true;
     resultText.textContent = 'Running…';
+    setConfidence(null);
     try {
       const res = await fetch('/api/ocr', { method: 'POST', body: fd });
       if (!res.ok) {
@@ -204,6 +218,7 @@ runBtn.addEventListener('click', () => {
       } else {
         const data = await res.json();
         resultText.textContent = data.text || '(empty)';
+        setConfidence(data.confidence);
       }
     } catch (err) {
       resultText.textContent = 'Error: ' + err.message;

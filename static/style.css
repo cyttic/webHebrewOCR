@@ -99,3 +99,10 @@ input[type=file], select {
   flex: 1; font-size: 26px; line-height: 1.6; color: #1a202c;
   white-space: pre-wrap; word-break: break-word; overflow-y: auto;
 }
+
+.confidence {
+  margin-top: 8px; font-size: 14px; font-weight: 600; min-height: 18px;
+}
+.confidence.conf-high { color: #2f855a; }
+.confidence.conf-mid  { color: #b7791f; }
+.confidence.conf-low  { color: #c53030; }

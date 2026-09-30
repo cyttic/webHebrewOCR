@@ -13,3 +13,5 @@ env/
 
 # os
 .DS_Store
+debug_inputs/
+model_server.log

@@ -59,6 +59,37 @@ Open `http://<VM_PUBLIC_IP>/` — the UI loads from Azure, OCR runs on the noteb
 
 ---
 
+## OCR response format
+
+`POST /ocr` (model server) and `POST /api/ocr` (frontend, forwarded verbatim)
+return:
+
+```json
+{
+  "text": "הטקסט שזוהה",
+  "confidence": 0.87
+}
+```
+
+- **`text`** — the decoded Hebrew string.
+- **`confidence`** — a float in `[0, 1]`: the **geometric-mean per-token
+  probability** of the decoded sequence, i.e. `exp(mean(log P(token)))` over the
+  generated tokens. Computed in `ocr.py` from the generation scores via
+  `compute_transition_scores(..., normalize_logits=True)`, so it works for both
+  greedy and beam search. Padding after EOS is masked out.
+
+Because it averages (rather than multiplies) per-token probabilities, the score
+is **length-independent** — a 3-token and a 20-token line are comparable.
+
+The UI (`static/app.js`) renders it as `Confidence: 87%`, color-coded:
+green ≥ 80%, amber ≥ 50%, red below.
+
+> Note: a model fine-tuned without calibration can be *confidently wrong*. Treat
+> the score as a **relative** signal (compare outputs, flag low-confidence lines),
+> not a literal accuracy probability.
+
+---
+
 ## Notes
 - The public site works only while the **notebook is on** and the tunnel is up.
 - Frontend image is ~150 MB (no torch/model) → fast builds and no VM OOM.

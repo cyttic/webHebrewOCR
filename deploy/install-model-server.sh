@@ -10,6 +10,11 @@
 #
 # Optional overrides:
 #     sudo PROJECT_DIR=/path/to/webHebrewOCR PYTHON=/path/to/venv/bin/python bash install-model-server.sh
+#     OCR_MODELS=name1,name2   serve ONLY these models (others requested -> the first one)
+#
+# This machine (exp35-large only, CUDA env):
+#     sudo PROJECT_DIR=/mnt/ssd2/cyttic/projects/webHebrewOCR PYTHON=/mnt/ssd2/cyttic/ml_env/bin/python \
+#          OCR_MODELS=exp35-ctc-large-en-punctdec bash deploy/install-model-server.sh
 #
 set -euo pipefail
 
@@ -17,11 +22,13 @@ set -euo pipefail
 RUN_USER="${RUN_USER:-${SUDO_USER:-$(id -un)}}"
 PROJECT_DIR="${PROJECT_DIR:-/home/${RUN_USER}/projects/webHebrewOCR}"
 PORT="${PORT:-8001}"
+OCR_MODELS="${OCR_MODELS:-}"
 SERVICE=/etc/systemd/system/model-server.service
 
 echo ">> user        : ${RUN_USER}"
 echo ">> project dir : ${PROJECT_DIR}"
 echo ">> port        : ${PORT}"
+echo ">> models      : ${OCR_MODELS:-all}"
 
 [ -d "${PROJECT_DIR}" ] || { echo "ERROR: project dir not found: ${PROJECT_DIR}"; exit 1; }
 [ -f "${PROJECT_DIR}/model_server.py" ] || { echo "ERROR: model_server.py not in ${PROJECT_DIR}"; exit 1; }
@@ -60,9 +67,12 @@ Wants=network-online.target
 [Service]
 User=${RUN_USER}
 WorkingDirectory=${PROJECT_DIR}
+Environment=OCR_MODELS=${OCR_MODELS}
+Environment=HF_XET_FIXED_DOWNLOAD_CONCURRENCY=4
 ExecStart=${PY} -m uvicorn model_server:app --host 127.0.0.1 --port ${PORT}
 Restart=always
 RestartSec=5
+TimeoutStartSec=180
 
 [Install]
 WantedBy=multi-user.target
